@@ -26,7 +26,7 @@
         </div>
         <div>
           <h1 class="text-xl font-bold text-slate-900">Inter-Branch Reconciliation Portal</h1>
-          <p class="text-xs text-slate-500">Automated Contra Ledger Matcher & Exception Resolver</p>
+          <p class="text-xs text-slate-500">Pure Amount Matching (Bank/CN/DN/JV) & Smart Difference Settler</p>
         </div>
       </div>
       <!-- Top Action Buttons -->
@@ -83,7 +83,6 @@
 
     <!-- ================= TAB 1 CONTAINER ================= -->
     <section id="tab1Content" class="space-y-6">
-      <!-- File Upload Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Main Branch Sale -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -123,7 +122,7 @@
       <!-- Action Row -->
       <div class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4">
         <div class="text-sm text-slate-600">
-          Smart Matching: Bill No. format variations (with/without slash/dash) aur amount variations automatically handle kiye jayenge.
+          Smart Rules: <strong>Bank, CN, DN & JV</strong> match solely on <strong>Amount</strong>. Invoices match on bill & suggest pending CN/DN for difference.
         </div>
         <button onclick="reconcileTab('t1')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
           <i class="ph-bold ph-lightning"></i> Reconcile Tab 1 Only
@@ -228,7 +227,7 @@
       <!-- Action Row -->
       <div class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4">
         <div class="text-sm text-slate-600">
-          Smart Matching: Bill No. format variations & amount variations automatically handle kiye jayenge.
+          Smart Rules: <strong>Bank, CN, DN & JV</strong> match solely on <strong>Amount</strong>. Invoices match on bill & suggest pending CN/DN for difference.
         </div>
         <button onclick="reconcileTab('t2')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
           <i class="ph-bold ph-lightning"></i> Reconcile Tab 2 Only
@@ -319,7 +318,6 @@
       return String(s).replace(/\0/g, '').trim();
     }
 
-    // Convert date to standard DD-MM-YYYY
     function formatExcelDate(val) {
       if (!val) return '-';
       if (typeof val === 'string' && val.includes('-') && val.length === 10) {
@@ -338,20 +336,50 @@
       return String(val).trim();
     }
 
-    // Comprehensive Bill Extractor & Match Key Generator
+    // Identifies Nature of Entry
+    function detectEntryType(prefix, oppName, remark) {
+      const p = prefix.toUpperCase();
+      const opp = oppName.toUpperCase();
+      const r = remark.toUpperCase();
+
+      if (p === 'OP' || opp.includes('OPENING')) return 'OPENING';
+      if (p === 'CR' || opp.includes('SALES RETURN') || r.includes('CRNT') || opp.includes('CREDIT NOTE')) return 'CN';
+      if (p === 'DB' || opp.includes('PURCHASE RETURN') || r.includes('DBNT') || opp.includes('DEBIT NOTE')) return 'DN';
+      if (p === 'Q' || p === 'Y' || opp.includes('BANK') || opp.includes('AXIS') || opp.includes('HDFC') || opp.includes('ICICI') || opp.includes('KOTAK')) return 'BANK';
+      if (p === 'J' || opp.includes('JOURNAL') || opp.includes('JV')) return 'JV';
+      return 'INVOICE';
+    }
+
     function extractBillNo(row) {
       const yr = cleanStr(row['c_year']);
       const prefix = cleanStr(row['c_prefix']).toUpperCase();
       const tran = cleanStr(row['n_tran_no']);
       const remark = cleanStr(row['c_remark']);
+      const oppName = cleanStr(row['c_opp_name']);
 
-      if (prefix === 'OP' || yr === '00') {
-        return { display: 'OPENING-BAL', matchKey: 'OPENING-BAL', rawNum: '0' };
+      const entryType = detectEntryType(prefix, oppName, remark);
+
+      if (entryType === 'OPENING') {
+        return { display: 'OPENING-BAL', matchKey: 'OPENING-BAL', rawNum: '0', entryType };
       }
 
-      // 1. Check Remark (Handles both: "26/SZ-000211" AND "26/SZ015882")
+      // Display Labels for Non-Invoice Vouchers
+      if (entryType === 'BANK') {
+        const bankName = oppName ? oppName.split('-')[0].split('(')[0].trim() : 'BANK';
+        return { display: `${bankName} (Vch:${tran})`, matchKey: 'BANK_ENTRY', rawNum: tran, entryType };
+      }
+      if (entryType === 'CN') {
+        return { display: `CN-${yr || '26'}-${tran}`, matchKey: 'CN_ENTRY', rawNum: tran, entryType };
+      }
+      if (entryType === 'DN') {
+        return { display: `DN-${yr || '26'}-${tran}`, matchKey: 'DN_ENTRY', rawNum: tran, entryType };
+      }
+      if (entryType === 'JV') {
+        return { display: `JV-${yr || '26'}-${tran}`, matchKey: 'JV_ENTRY', rawNum: tran, entryType };
+      }
+
+      // Standard Invoices in Remark (handles 26/SZ-000211, 26/SZ015882, etc.)
       if (remark) {
-        // Match patterns like: 26/SZ-015882, 26/SZ015882, 26-SZ/15882, SZ/15882
         const m = remark.match(/(?:Bill\s*No\.?:?\s*)?([0-9]{2})?[\/\-]?([A-Z]+)[\/\-]?([0-9]+)/i);
         if (m) {
           const y = m[1] || '26';
@@ -360,44 +388,24 @@
           return {
             display: `${y}-${pref}/${num}`,
             matchKey: `${y}-${pref}-${num}`,
-            rawNum: String(num)
+            rawNum: String(num),
+            entryType: 'INVOICE'
           };
-        }
-
-        const dbrMatch = remark.match(/DBNT[:\s\-]*([0-9]+)/i);
-        if (dbrMatch) {
-          const num = parseInt(dbrMatch[1], 10);
-          return { display: `DBNT-${num}`, matchKey: `DBNT-${num}`, rawNum: String(num) };
         }
       }
 
-      // 2. From Dedicated Columns
+      // Standard Invoices in Columns
       if (yr && prefix && tran && tran !== '0') {
         const num = parseInt(tran, 10);
         return {
           display: `${yr}-${prefix}/${num}`,
           matchKey: `${yr}-${prefix}-${num}`,
-          rawNum: String(num)
+          rawNum: String(num),
+          entryType: 'INVOICE'
         };
       }
 
-      // 3. Fallback scan on any field
-      for (const k of Object.keys(row)) {
-        const strVal = cleanStr(row[k]);
-        const m = strVal.match(/([0-9]{2})?[\/\-]?([A-Z]+)[\/\-]?([0-9]+)/i);
-        if (m && m[2].length <= 4) {
-          const y = m[1] || '26';
-          const pref = m[2].toUpperCase();
-          const num = parseInt(m[3], 10);
-          return {
-            display: `${y}-${pref}/${num}`,
-            matchKey: `${y}-${pref}-${num}`,
-            rawNum: String(num)
-          };
-        }
-      }
-
-      return { display: 'UNKNOWN', matchKey: `ROW-${Math.random()}`, rawNum: '' };
+      return { display: 'UNKNOWN', matchKey: `ROW-${Math.random()}`, rawNum: '', entryType: 'INVOICE' };
     }
 
     function parseAmount(val) {
@@ -408,7 +416,6 @@
       return isNaN(num) ? 0 : Math.abs(num);
     }
 
-    // File Upload Handler
     function handleFileUpload(event, tabKey, sideKey) {
       const file = event.target.files[0];
       if (!file) return;
@@ -430,7 +437,7 @@
             return;
           }
 
-          const records = rows.map((row) => {
+          const records = rows.map((row, idx) => {
             const billInfo = extractBillNo(row);
 
             let date = '';
@@ -452,9 +459,11 @@
             }
 
             return {
+              id: `${sideKey}_${idx}`,
               docDisplay: billInfo.display,
               matchKey: billInfo.matchKey,
               rawNum: billInfo.rawNum,
+              entryType: billInfo.entryType,
               date: date || '-',
               amount: amount,
               particulars: cleanStr(row['c_opp_name'] || row['c_name'] || '')
@@ -471,15 +480,15 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // 4-Tier Reconciliation Engine
+    // Advanced Reconciliation Engine
     function runTabReconciliation(tabKey) {
       const mainList = [...state[tabKey].main];
       const branchList = [...state[tabKey].branch];
 
       const results = [];
       const branchMatchedIndices = new Set();
+      const mainMatchedIndices = new Set();
 
-      // Helper: parse date to timestamp for proximity check
       function parseDateObj(dStr) {
         if (!dStr || dStr === '-') return null;
         const p = dStr.split('-');
@@ -487,11 +496,49 @@
         return null;
       }
 
-      mainList.forEach(m => {
+      // PASS 1: BANK, CN, DN, JV -> PURE AMOUNT BASIS (No Voucher / Tran No Match Needed!)
+      mainList.forEach((m, mIdx) => {
+        if (m.entryType === 'BANK' || m.entryType === 'CN' || m.entryType === 'DN' || m.entryType === 'JV') {
+          for (let bIdx = 0; bIdx < branchList.length; bIdx++) {
+            if (branchMatchedIndices.has(bIdx)) continue;
+            const b = branchList[bIdx];
+
+            const isMirrorType = 
+              (m.entryType === 'BANK' && b.entryType === 'BANK') ||
+              (m.entryType === 'CN' && b.entryType === 'DN') ||
+              (m.entryType === 'DN' && b.entryType === 'CN') ||
+              (m.entryType === 'JV' && b.entryType === 'JV');
+
+            if (isMirrorType && Math.abs(m.amount - b.amount) < 1.0) {
+              mainMatchedIndices.add(mIdx);
+              branchMatchedIndices.add(bIdx);
+              results.push({
+                uid: 'RES_' + Math.random().toString(36).substr(2, 9),
+                status: 'MATCHED',
+                mainDoc: m.docDisplay,
+                mainDate: m.date,
+                mainAmt: m.amount,
+                branchDoc: b.docDisplay,
+                branchDate: b.date,
+                branchAmt: b.amount,
+                diff: 0,
+                entryType: m.entryType,
+                suggestion: null
+              });
+              break;
+            }
+          }
+        }
+      });
+
+      // PASS 2: INVOICES -> Bill Key & Amount Match (With Multi-tier Fallbacks)
+      mainList.forEach((m, mIdx) => {
+        if (mainMatchedIndices.has(mIdx)) return;
+
         let matchedIdx = -1;
         let matchReason = '';
 
-        // TIER 1: Exact Bill Key + Exact Amount Match
+        // TIER A: Exact Bill Key + Exact Amount
         for (let i = 0; i < branchList.length; i++) {
           if (branchMatchedIndices.has(i)) continue;
           const b = branchList[i];
@@ -502,7 +549,7 @@
           }
         }
 
-        // TIER 2: Exact Bill Key Match BUT Amount Differs (e.g. Rate diff, Tax diff)
+        // TIER B: Exact Bill Key Match BUT Amount Differs (e.g. Return less kiya bill me)
         if (matchedIdx === -1) {
           for (let i = 0; i < branchList.length; i++) {
             if (branchMatchedIndices.has(i)) continue;
@@ -515,18 +562,16 @@
           }
         }
 
-        // TIER 3: Exact Amount Match BUT Bill No Differs (e.g. typing error in bill no / bank contra)
-        if (matchedIdx === -1) {
+        // TIER C: Same Amount BUT Bill No Variation (e.g., within 7 days)
+        if (matchedIdx === -1 && m.entryType === 'INVOICE') {
           for (let i = 0; i < branchList.length; i++) {
             if (branchMatchedIndices.has(i)) continue;
             const b = branchList[i];
-            if (Math.abs(m.amount - b.amount) < 1.0) {
-              // Same amount! Check if dates are close (within 7 days) or one is bank
+            if (b.entryType === 'INVOICE' && Math.abs(m.amount - b.amount) < 1.0) {
               const tM = parseDateObj(m.date);
               const tB = parseDateObj(b.date);
               const daysDiff = (tM && tB) ? Math.abs(tM - tB) / (1000 * 60 * 60 * 24) : 0;
-              
-              if (daysDiff <= 7 || m.matchKey === 'OPENING-BAL' || !tM || !tB) {
+              if (daysDiff <= 7 || !tM || !tB) {
                 matchedIdx = i;
                 matchReason = 'BILL_DIFF';
                 break;
@@ -535,7 +580,7 @@
           }
         }
 
-        // TIER 4: Same Bill Sequence Number (raw number like 15882) BUT Amount & Prefix have minor variations
+        // TIER D: Same Numeric Part of Bill (e.g., 15882)
         if (matchedIdx === -1 && m.rawNum && m.rawNum !== '0') {
           for (let i = 0; i < branchList.length; i++) {
             if (branchMatchedIndices.has(i)) continue;
@@ -549,11 +594,13 @@
         }
 
         if (matchedIdx !== -1) {
-          const b = branchList[matchedIdx];
+          mainMatchedIndices.add(mIdx);
           branchMatchedIndices.add(matchedIdx);
+          const b = branchList[matchedIdx];
           const diff = Number((m.amount - b.amount).toFixed(2));
 
           results.push({
+            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
             status: matchReason,
             mainDoc: m.docDisplay,
             mainDate: m.date,
@@ -561,11 +608,19 @@
             branchDoc: b.docDisplay,
             branchDate: b.date,
             branchAmt: b.amount,
-            diff: diff
+            diff: diff,
+            entryType: m.entryType,
+            suggestion: null
           });
-        } else {
-          // Unmatched in main
-          results.push({
+        }
+      });
+
+      // PASS 3: Unmatched Main
+      const unmatchedMainItems = [];
+      mainList.forEach((m, mIdx) => {
+        if (!mainMatchedIndices.has(mIdx)) {
+          const item = {
+            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
             status: 'UNMATCHED_MAIN',
             mainDoc: m.docDisplay,
             mainDate: m.date,
@@ -573,15 +628,22 @@
             branchDoc: '-',
             branchDate: '-',
             branchAmt: 0,
-            diff: Number(m.amount.toFixed(2))
-          });
+            diff: Number(m.amount.toFixed(2)),
+            entryType: m.entryType,
+            suggestion: null,
+            originalIndex: mIdx
+          };
+          unmatchedMainItems.push(item);
+          results.push(item);
         }
       });
 
-      // Remaining Unmatched in Branch
-      branchList.forEach((b, idx) => {
-        if (!branchMatchedIndices.has(idx)) {
-          results.push({
+      // PASS 4: Unmatched Branch
+      const unmatchedBranchItems = [];
+      branchList.forEach((b, bIdx) => {
+        if (!branchMatchedIndices.has(bIdx)) {
+          const item = {
+            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
             status: 'UNMATCHED_BRANCH',
             mainDoc: '-',
             mainDate: '-',
@@ -589,13 +651,79 @@
             branchDoc: b.docDisplay,
             branchDate: b.date,
             branchAmt: b.amount,
-            diff: Number((-b.amount).toFixed(2))
-          });
+            diff: Number((-b.amount).toFixed(2)),
+            entryType: b.entryType,
+            suggestion: null,
+            originalIndex: bIdx
+          };
+          unmatchedBranchItems.push(item);
+          results.push(item);
+        }
+      });
+
+      // PASS 5: SMART SUGGESTION FOR AMOUNT DIFFERENCES (Searching CN / DN pools)
+      results.forEach(res => {
+        if (res.status === 'AMT_DIFF' || res.status === 'BOTH_DIFF') {
+          const targetDiff = Math.abs(res.diff);
+
+          // 1. Search in Unmatched Branch list
+          const foundBranch = unmatchedBranchItems.find(u => 
+            (u.entryType === 'DN' || u.entryType === 'CN' || u.entryType === 'INVOICE') && 
+            Math.abs(u.branchAmt - targetDiff) <= 2.0
+          );
+
+          if (foundBranch) {
+            res.suggestion = {
+              targetUid: foundBranch.uid,
+              source: 'Branch',
+              doc: foundBranch.branchDoc,
+              amt: foundBranch.branchAmt,
+              type: foundBranch.entryType === 'DN' ? 'Debit Note' : (foundBranch.entryType === 'CN' ? 'Credit Note' : 'Adjustment')
+            };
+            return;
+          }
+
+          // 2. Search in Unmatched Main list
+          const foundMain = unmatchedMainItems.find(u => 
+            (u.entryType === 'CN' || u.entryType === 'DN') && 
+            Math.abs(u.mainAmt - targetDiff) <= 2.0
+          );
+
+          if (foundMain) {
+            res.suggestion = {
+              targetUid: foundMain.uid,
+              source: 'Main Branch',
+              doc: foundMain.mainDoc,
+              amt: foundMain.mainAmt,
+              type: foundMain.entryType === 'CN' ? 'Credit Note' : 'Debit Note'
+            };
+          }
         }
       });
 
       state[tabKey].results = results;
       renderTable(tabKey);
+    }
+
+    // Link & Settle Action: Removes the CN/DN from pending and marks the bill matched
+    function linkAndSettle(tabKey, billUid, targetUid) {
+      const resList = state[tabKey].results;
+      const billRow = resList.find(r => r.uid === billUid);
+      const noteRowIdx = resList.findIndex(r => r.uid === targetUid);
+
+      if (billRow && noteRowIdx !== -1) {
+        const noteRow = resList[noteRowIdx];
+        billRow.status = 'MATCHED';
+        billRow.noteAdjustment = `${billRow.suggestion.type} (${billRow.suggestion.doc}) of ₹${billRow.suggestion.amt} in ${billRow.suggestion.source}`;
+        billRow.suggestion = null;
+        billRow.diff = 0;
+
+        // Remove the CN/DN from pending results list so it won't appear as unmatched
+        resList.splice(noteRowIdx, 1);
+
+        renderTable(tabKey);
+        updateGlobalKPIs();
+      }
     }
 
     function reconcileTab(tabKey) {
@@ -627,7 +755,7 @@
       alert(`Success! Reconciled simultaneously.`);
     }
 
-    // Render Table with Clear Status Badges
+    // Render Table with Interactive Suggestion & Settle Options
     function renderTable(tabKey) {
       const selectedFilters = Array.from(document.querySelectorAll(`.${tabKey}Filter:checked`)).map(cb => cb.value);
       const tbody = document.getElementById(`${tabKey}TableBody`);
@@ -662,7 +790,7 @@
           diffColor = 'text-violet-600 font-bold';
         }
 
-        return `
+        let rowHtml = `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
             <td class="p-3">${badge}</td>
             <td class="p-3 font-semibold text-slate-900">${r.mainDoc}</td>
@@ -671,9 +799,33 @@
             <td class="p-3 font-semibold text-slate-900">${r.branchDoc}</td>
             <td class="p-3 text-slate-600 font-medium">${r.branchDate}</td>
             <td class="p-3 font-medium text-slate-900">₹${Number(r.branchAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 text-center ${diffColor}">₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-center ${diffColor}">
+              ₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+              ${r.noteAdjustment ? `<div class="text-[10px] text-emerald-600 font-normal">Settled with Note</div>` : ''}
+            </td>
           </tr>
         `;
+
+        // Interactive Suggestion Card Row
+        if (r.suggestion) {
+          rowHtml += `
+            <tr class="bg-amber-50/70 border-b border-amber-200/60">
+              <td colspan="8" class="p-2.5 px-4 text-xs text-amber-900">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-lightbulb text-amber-600 text-base flex-shrink-0"></i>
+                    <span><strong>Suggested Adjustment:</strong> Found pending <strong>${r.suggestion.type} (${r.suggestion.doc})</strong> of <strong>₹${Number(r.suggestion.amt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong> in <em>${r.suggestion.source}</em>. Considering this balances the ₹${Number(Math.abs(r.diff)).toLocaleString('en-IN', {minimumFractionDigits: 2})} difference!</span>
+                  </div>
+                  <button onclick="linkAndSettle('${tabKey}', '${r.uid}', '${r.suggestion.targetUid}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-md text-xs font-semibold shadow-sm transition flex items-center gap-1 self-start sm:self-auto">
+                    <i class="ph-bold ph-link-simple"></i> Link & Settle
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        return rowHtml;
       }).join('');
     }
 
@@ -695,12 +847,34 @@
       const wb = XLSX.utils.book_new();
 
       if (state.t1.results.length > 0) {
-        const ws1 = XLSX.utils.json_to_sheet(state.t1.results);
+        const exportData1 = state.t1.results.map(r => ({
+          Status: r.status,
+          Main_BillNo: r.mainDoc,
+          Main_Date: r.mainDate,
+          Main_Amount: r.mainAmt,
+          Branch_BillNo: r.branchDoc,
+          Branch_Date: r.branchDate,
+          Branch_Amount: r.branchAmt,
+          Difference: r.diff,
+          Settlement_Adjustment: r.noteAdjustment || (r.suggestion ? `Suggested: ${r.suggestion.type} (${r.suggestion.doc}) of Rs.${r.suggestion.amt} in ${r.suggestion.source}` : '')
+        }));
+        const ws1 = XLSX.utils.json_to_sheet(exportData1);
         XLSX.utils.book_append_sheet(wb, ws1, "MainSale_vs_BranchPurch");
       }
 
       if (state.t2.results.length > 0) {
-        const ws2 = XLSX.utils.json_to_sheet(state.t2.results);
+        const exportData2 = state.t2.results.map(r => ({
+          Status: r.status,
+          Main_BillNo: r.mainDoc,
+          Main_Date: r.mainDate,
+          Main_Amount: r.mainAmt,
+          Branch_BillNo: r.branchDoc,
+          Branch_Date: r.branchDate,
+          Branch_Amount: r.branchAmt,
+          Difference: r.diff,
+          Settlement_Adjustment: r.noteAdjustment || (r.suggestion ? `Suggested: ${r.suggestion.type} (${r.suggestion.doc}) of Rs.${r.suggestion.amt} in ${r.suggestion.source}` : '')
+        }));
+        const ws2 = XLSX.utils.json_to_sheet(exportData2);
         XLSX.utils.book_append_sheet(wb, ws2, "MainPurch_vs_BranchSale");
       }
 
