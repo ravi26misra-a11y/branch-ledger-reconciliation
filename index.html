@@ -26,7 +26,7 @@
         </div>
         <div>
           <h1 class="text-xl font-bold text-slate-900">Inter-Branch Reconciliation Portal</h1>
-          <p class="text-xs text-slate-500">Vertical Multi-Filter: Status & Transaction Types (Bills, Bank, JV, Notes)</p>
+          <p class="text-xs text-slate-500">Flexible Ledger Upload & Contra Reconciliation</p>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -72,48 +72,48 @@
     <div class="border-b border-slate-200 mb-6 flex space-x-8">
       <button onclick="switchTab('tab1')" id="navTab1" class="tab-active py-3 px-1 text-sm flex items-center gap-2">
         <i class="ph-bold ph-tag text-base"></i>
-        Tab 1: Main Sale ⇄ Branch Purchase
+        Set 1: Ledger Match
       </button>
       <button onclick="switchTab('tab2')" id="navTab2" class="text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2">
         <i class="ph-bold ph-shopping-cart text-base"></i>
-        Tab 2: Main Purchase ⇄ Branch Sale
+        Set 2: Reverse Ledger Match
       </button>
     </div>
 
     <!-- ================= TAB 1 CONTAINER ================= -->
     <section id="tab1Content" class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Main Branch Sale -->
+        <!-- Main Branch File -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-              Main Branch: Sales Ledger
+              Main Branch Ledger (Sale / Purchase)
             </h3>
             <span class="text-xs font-medium text-slate-400" id="t1MainCount">0 loaded</span>
           </div>
           <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('t1MainFile').click()">
             <input type="file" id="t1MainFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'main')">
             <i class="ph-duotone ph-upload-simple text-3xl text-blue-600 mb-2"></i>
-            <p class="text-sm font-semibold text-slate-700" id="t1MainFileName">Upload Main Branch Sale XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">E.g., sma pvt sale ledger</p>
+            <p class="text-sm font-semibold text-slate-700" id="t1MainFileName">Upload Main Branch Excel/XLS</p>
+            <p class="text-xs text-slate-400 mt-1">Sale ya Purchase ka ledger upload karein</p>
           </div>
         </div>
 
-        <!-- Branch Purchase -->
+        <!-- Other Branch Opposite File -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
-              Other Branch: Purchase Ledger
+              Other Branch Ledger (Opposite / Contra File)
             </h3>
             <span class="text-xs font-medium text-slate-400" id="t1BranchCount">0 loaded</span>
           </div>
           <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-indigo-400 transition cursor-pointer" onclick="document.getElementById('t1BranchFile').click()">
             <input type="file" id="t1BranchFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'branch')">
             <i class="ph-duotone ph-upload-simple text-3xl text-indigo-600 mb-2"></i>
-            <p class="text-sm font-semibold text-slate-700" id="t1BranchFileName">Upload Other Branch Purchase XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">E.g., pur from sma ledger</p>
+            <p class="text-sm font-semibold text-slate-700" id="t1BranchFileName">Upload Branch Opposite Excel/XLS</p>
+            <p class="text-xs text-slate-400 mt-1">Samne wali branch ka counter ledger upload karein</p>
           </div>
         </div>
       </div>
@@ -124,16 +124,16 @@
           Smart Rules: <strong>Bank, CN, DN & JV</strong> match solely on <strong>Amount</strong>. Invoices match on bill & suggest pending CN/DN for difference.
         </div>
         <button onclick="reconcileTab('t1')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
-          <i class="ph-bold ph-lightning"></i> Reconcile Tab 1 Only
+          <i class="ph-bold ph-lightning"></i> Reconcile Set 1 Only
         </button>
       </div>
 
-      <!-- Results Table & Vertical Multi-filter Bar -->
+      <!-- Results Table & Vertical Multi-Filter Area -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex flex-col gap-3">
+        <div class="p-4 border-b border-slate-100 flex flex-col gap-4">
           
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h4 class="font-bold text-slate-800">Tab 1 Results</h4>
+            <h4 class="font-bold text-slate-800">Set 1 Reconciliation Results</h4>
             
             <!-- Instant Search Box -->
             <div class="relative w-full sm:w-80">
@@ -142,7 +142,7 @@
             </div>
           </div>
 
-          <!-- Vertical Filter 1: Status Filters -->
+          <!-- Section 1: Status Filters -->
           <div class="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
             <span class="text-slate-600 font-semibold px-1 min-w-[75px] flex items-center gap-1">
               <i class="ph-bold ph-check-circle text-emerald-600"></i> Status:
@@ -173,169 +173,31 @@
             </label>
           </div>
 
-          <!-- Vertical Filter 2: Transaction Type Multi-Select (Vertical placement) -->
-          <div class="flex flex-wrap items-center gap-1.5 bg-blue-50/50 border border-blue-200/80 rounded-xl p-2 text-xs">
-            <span class="text-slate-700 font-semibold px-1 min-w-[75px] flex items-center gap-1">
-              <i class="ph-bold ph-funnel text-blue-600"></i> Type:
+          <!-- Section 2: VERTICAL MULTI-SELECT TYPE FILTER -->
+          <div class="bg-blue-50/50 border border-blue-200/80 rounded-xl p-3 text-xs">
+            <span class="text-slate-700 font-bold flex items-center gap-1.5 mb-2">
+              <i class="ph-bold ph-funnel text-blue-600"></i> Select Entry Types to View (Multi-select Vertical):
             </span>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="INVOICE" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-blue-600 focus:ring-0">
-              <span class="text-slate-800 font-semibold">Invoices / Bills</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="BANK" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-indigo-600 focus:ring-0">
-              <span class="text-indigo-800 font-semibold">Bank Transfers</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="JV" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-teal-600 focus:ring-0">
-              <span class="text-teal-800 font-semibold">Journal Vouchers (JV)</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="NOTE" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-amber-600 focus:ring-0">
-              <span class="text-amber-800 font-semibold">Credit / Debit Notes (CN/DN)</span>
-            </label>
-          </div>
-
-        </div>
-
-        <div class="overflow-x-auto max-h-[550px]">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 z-10">
-              <tr>
-                <th class="p-3 border-b">Status / Reason</th>
-                <th class="p-3 border-b bg-blue-50/70">MAIN: BILL NO</th>
-                <th class="p-3 border-b bg-blue-50/70">MAIN: DATE</th>
-                <th class="p-3 border-b bg-blue-50/70">MAIN: AMOUNT (₹)</th>
-                <th class="p-3 border-b bg-indigo-50/70">BRANCH: REF / BILL NO</th>
-                <th class="p-3 border-b bg-indigo-50/70">BRANCH: DATE</th>
-                <th class="p-3 border-b bg-indigo-50/70">BRANCH: AMOUNT (₹)</th>
-                <th class="p-3 border-b text-center">DIFF (₹)</th>
-              </tr>
-            </thead>
-            <tbody id="t1TableBody" class="divide-y divide-slate-100 text-slate-700">
-              <tr><td colspan="8" class="p-6 text-center text-slate-400">Files upload karke Reconcile button press karein.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= TAB 2 CONTAINER ================= -->
-    <section id="tab2Content" class="space-y-6 hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Main Purchase -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-slate-800 flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-              Main Branch: Purchase Ledger
-            </h3>
-            <span class="text-xs font-medium text-slate-400" id="t2MainCount">0 loaded</span>
-          </div>
-          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('t2MainFile').click()">
-            <input type="file" id="t2MainFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't2', 'main')">
-            <i class="ph-duotone ph-upload-simple text-3xl text-blue-600 mb-2"></i>
-            <p class="text-sm font-semibold text-slate-700" id="t2MainFileName">Upload Main Branch Purchase XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">Columns: Bill No / Remark, Date, Amount</p>
-          </div>
-        </div>
-
-        <!-- Branch Sale -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-slate-800 flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
-              Other Branch: Sales Ledger
-            </h3>
-            <span class="text-xs font-medium text-slate-400" id="t2BranchCount">0 loaded</span>
-          </div>
-          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-indigo-400 transition cursor-pointer" onclick="document.getElementById('t2BranchFile').click()">
-            <input type="file" id="t2BranchFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't2', 'branch')">
-            <i class="ph-duotone ph-upload-simple text-3xl text-indigo-600 mb-2"></i>
-            <p class="text-sm font-semibold text-slate-700" id="t2BranchFileName">Upload Other Branch Sale XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">Columns: Invoice No, Prefix, Date, Amount</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Row -->
-      <div class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4">
-        <div class="text-sm text-slate-600">
-          Smart Rules: <strong>Bank, CN, DN & JV</strong> match solely on <strong>Amount</strong>. Invoices match on bill & suggest pending CN/DN for difference.
-        </div>
-        <button onclick="reconcileTab('t2')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
-          <i class="ph-bold ph-lightning"></i> Reconcile Tab 2 Only
-        </button>
-      </div>
-
-      <!-- Results Table & Vertical Multi-filter Bar -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex flex-col gap-3">
-          
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h4 class="font-bold text-slate-800">Tab 2 Results</h4>
-            
-            <!-- Instant Search Box -->
-            <div class="relative w-full sm:w-80">
-              <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-              <input type="text" id="t2SearchInput" oninput="renderTable('t2')" placeholder="Search Bill No, Date or Amount..." class="w-full text-xs pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+            <div class="flex flex-col space-y-2">
+              <label class="flex items-center gap-2 p-1.5 px-3 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none w-fit">
+                <input type="checkbox" value="INVOICE" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-blue-600 focus:ring-0">
+                <span class="text-slate-800 font-semibold">Invoices / Bills (Sale ⇄ Purchase)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 px-3 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none w-fit">
+                <input type="checkbox" value="BANK" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-indigo-600 focus:ring-0">
+                <span class="text-indigo-800 font-semibold">Bank Transfers (Contra Payment ⇄ Receipt)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 px-3 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none w-fit">
+                <input type="checkbox" value="JV" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-teal-600 focus:ring-0">
+                <span class="text-teal-800 font-semibold">Journal Vouchers (JV Entries)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 px-3 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none w-fit">
+                <input type="checkbox" value="NOTE" checked onchange="renderTable('t1')" class="t1TypeFilter rounded text-amber-600 focus:ring-0">
+                <span class="text-amber-800 font-semibold">Credit / Debit Notes (Return / Adjustments)</span>
+              </label>
             </div>
           </div>
 
-          <!-- Vertical Filter 1: Status Filters -->
-          <div class="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
-            <span class="text-slate-600 font-semibold px-1 min-w-[75px] flex items-center gap-1">
-              <i class="ph-bold ph-check-circle text-emerald-600"></i> Status:
-            </span>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="MATCHED" checked onchange="renderTable('t2')" class="t2Filter rounded text-emerald-600 focus:ring-0">
-              <span class="text-emerald-700 font-semibold">Matched</span>
-            </label>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="BILL_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-blue-600 focus:ring-0">
-              <span class="text-blue-700 font-semibold">Bill Differ</span>
-            </label>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="AMT_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-amber-600 focus:ring-0">
-              <span class="text-amber-700 font-semibold">Amt Differ</span>
-            </label>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="BOTH_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-purple-600 focus:ring-0">
-              <span class="text-purple-700 font-semibold">Both Differ</span>
-            </label>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="UNMATCHED_MAIN" checked onchange="renderTable('t2')" class="t2Filter rounded text-rose-600 focus:ring-0">
-              <span class="text-rose-700 font-semibold">Only Main</span>
-            </label>
-            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="UNMATCHED_BRANCH" checked onchange="renderTable('t2')" class="t2Filter rounded text-violet-600 focus:ring-0">
-              <span class="text-violet-700 font-semibold">Only Branch</span>
-            </label>
-          </div>
-
-          <!-- Vertical Filter 2: Transaction Type Multi-Select (Vertical placement) -->
-          <div class="flex flex-wrap items-center gap-1.5 bg-blue-50/50 border border-blue-200/80 rounded-xl p-2 text-xs">
-            <span class="text-slate-700 font-semibold px-1 min-w-[75px] flex items-center gap-1">
-              <i class="ph-bold ph-funnel text-blue-600"></i> Type:
-            </span>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="INVOICE" checked onchange="renderTable('t2')" class="t2TypeFilter rounded text-blue-600 focus:ring-0">
-              <span class="text-slate-800 font-semibold">Invoices / Bills</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="BANK" checked onchange="renderTable('t2')" class="t2TypeFilter rounded text-indigo-600 focus:ring-0">
-              <span class="text-indigo-800 font-semibold">Bank Transfers</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="JV" checked onchange="renderTable('t2')" class="t2TypeFilter rounded text-teal-600 focus:ring-0">
-              <span class="text-teal-800 font-semibold">Journal Vouchers (JV)</span>
-            </label>
-            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 cursor-pointer hover:bg-blue-50 select-none">
-              <input type="checkbox" value="NOTE" checked onchange="renderTable('t2')" class="t2TypeFilter rounded text-amber-600 focus:ring-0">
-              <span class="text-amber-800 font-semibold">Credit / Debit Notes (CN/DN)</span>
-            </label>
-          </div>
-
         </div>
 
         <div class="overflow-x-auto max-h-[550px]">
@@ -352,566 +214,4 @@
                 <th class="p-3 border-b text-center">DIFF (₹)</th>
               </tr>
             </thead>
-            <tbody id="t2TableBody" class="divide-y divide-slate-100 text-slate-700">
-              <tr><td colspan="8" class="p-6 text-center text-slate-400">Files upload karke Reconcile button press karein.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <script>
-    const state = {
-      t1: { main: [], branch: [], results: [] },
-      t2: { main: [], branch: [], results: [] }
-    };
-
-    function switchTab(tab) {
-      const isTab1 = tab === 'tab1';
-      document.getElementById('tab1Content').classList.toggle('hidden', !isTab1);
-      document.getElementById('tab2Content').classList.toggle('hidden', isTab1);
-
-      document.getElementById('navTab1').className = isTab1 
-        ? 'tab-active py-3 px-1 text-sm flex items-center gap-2' 
-        : 'text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2';
-
-      document.getElementById('navTab2').className = !isTab1 
-        ? 'tab-active py-3 px-1 text-sm flex items-center gap-2' 
-        : 'text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2';
-    }
-
-    function cleanStr(s) {
-      if (!s) return '';
-      return String(s).replace(/\0/g, '').trim();
-    }
-
-    function formatExcelDate(val) {
-      if (!val) return '-';
-      if (typeof val === 'string' && val.includes('-') && val.length === 10) {
-        const parts = val.split('-');
-        if (parts[0].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        return val;
-      }
-      const num = Number(val);
-      if (!isNaN(num) && num > 20000 && num < 80000) {
-        const date = new Date(Math.round((num - 25569) * 86400 * 1000));
-        const dd = String(date.getDate()).padStart(2, '0');
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const yyyy = date.getFullYear();
-        return `${dd}-${mm}-${yyyy}`;
-      }
-      return String(val).trim();
-    }
-
-    function detectEntryType(prefix, oppName, remark) {
-      const p = prefix.toUpperCase();
-      const opp = oppName.toUpperCase();
-      const r = remark.toUpperCase();
-
-      if (p === 'OP' || opp.includes('OPENING')) return 'OPENING';
-      if (p === 'CR' || opp.includes('SALES RETURN') || r.includes('CRNT') || opp.includes('CREDIT NOTE')) return 'CN';
-      if (p === 'DB' || opp.includes('PURCHASE RETURN') || r.includes('DBNT') || opp.includes('DEBIT NOTE')) return 'DN';
-      if (p === 'Q' || p === 'Y' || opp.includes('BANK') || opp.includes('AXIS') || opp.includes('HDFC') || opp.includes('ICICI') || opp.includes('KOTAK')) return 'BANK';
-      if (p === 'J' || opp.includes('JOURNAL') || opp.includes('JV')) return 'JV';
-      return 'INVOICE';
-    }
-
-    function extractBillNo(row) {
-      const yr = cleanStr(row['c_year']);
-      const prefix = cleanStr(row['c_prefix']).toUpperCase();
-      const tran = cleanStr(row['n_tran_no']);
-      const remark = cleanStr(row['c_remark']);
-      const oppName = cleanStr(row['c_opp_name']);
-
-      const entryType = detectEntryType(prefix, oppName, remark);
-
-      if (entryType === 'OPENING') {
-        return { display: 'OPENING-BAL', matchKey: 'OPENING-BAL', rawNum: '0', entryType };
-      }
-
-      if (entryType === 'BANK') {
-        const bankName = oppName ? oppName.split('-')[0].split('(')[0].trim() : 'BANK';
-        return { display: `${bankName} (Vch:${tran})`, matchKey: 'BANK_ENTRY', rawNum: tran, entryType };
-      }
-      if (entryType === 'CN') {
-        return { display: `CN-${yr || '26'}-${tran}`, matchKey: 'CN_ENTRY', rawNum: tran, entryType };
-      }
-      if (entryType === 'DN') {
-        return { display: `DN-${yr || '26'}-${tran}`, matchKey: 'DN_ENTRY', rawNum: tran, entryType };
-      }
-      if (entryType === 'JV') {
-        return { display: `JV-${yr || '26'}-${tran}`, matchKey: 'JV_ENTRY', rawNum: tran, entryType };
-      }
-
-      if (remark) {
-        const m = remark.match(/(?:Bill\s*No\.?:?\s*)?([0-9]{2})?[\/\-]?([A-Z]+)[\/\-]?([0-9]+)/i);
-        if (m) {
-          const y = m[1] || '26';
-          const pref = m[2].toUpperCase();
-          const num = parseInt(m[3], 10);
-          return {
-            display: `${y}-${pref}/${num}`,
-            matchKey: `${y}-${pref}-${num}`,
-            rawNum: String(num),
-            entryType: 'INVOICE'
-          };
-        }
-      }
-
-      if (yr && prefix && tran && tran !== '0') {
-        const num = parseInt(tran, 10);
-        return {
-          display: `${yr}-${prefix}/${num}`,
-          matchKey: `${yr}-${prefix}-${num}`,
-          rawNum: String(num),
-          entryType: 'INVOICE'
-        };
-      }
-
-      return { display: 'UNKNOWN', matchKey: `ROW-${Math.random()}`, rawNum: '', entryType: 'INVOICE' };
-    }
-
-    function parseAmount(val) {
-      if (typeof val === 'number') return Math.abs(val);
-      if (!val) return 0;
-      const cleaned = String(val).replace(/,/g, '').replace(/[^\d.-]/g, '');
-      const num = parseFloat(cleaned);
-      return isNaN(num) ? 0 : Math.abs(num);
-    }
-
-    function handleFileUpload(event, tabKey, sideKey) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const fileNameElem = document.getElementById(`${tabKey}${sideKey.charAt(0).toUpperCase() + sideKey.slice(1)}FileName`);
-      const countElem = document.getElementById(`${tabKey}${sideKey.charAt(0).toUpperCase() + sideKey.slice(1)}Count`);
-      fileNameElem.innerText = file.name;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: true });
-
-          if (rows.length === 0) {
-            alert('File me koi valid record nahi mila.');
-            return;
-          }
-
-          const records = rows.map((row, idx) => {
-            const billInfo = extractBillNo(row);
-
-            let date = '';
-            for (const key of Object.keys(row)) {
-              const k = key.toLowerCase();
-              if (k === 'd_date' || k.includes('date') || k.includes('dt')) {
-                date = formatExcelDate(row[key]);
-                break;
-              }
-            }
-
-            let amount = 0;
-            for (const key of Object.keys(row)) {
-              const k = key.toLowerCase();
-              if (k === 'n_amount' || k.includes('amount') || k.includes('net') || k.includes('total') || k.includes('debit') || k.includes('credit')) {
-                const a = parseAmount(row[key]);
-                if (a > 0) amount = a;
-              }
-            }
-
-            return {
-              id: `${sideKey}_${idx}`,
-              docDisplay: billInfo.display,
-              matchKey: billInfo.matchKey,
-              rawNum: billInfo.rawNum,
-              entryType: billInfo.entryType,
-              date: date || '-',
-              amount: amount,
-              particulars: cleanStr(row['c_opp_name'] || row['c_name'] || '')
-            };
-          });
-
-          const filteredRecords = records.filter(r => r.amount > 0 || r.docDisplay !== 'UNKNOWN');
-          state[tabKey][sideKey] = filteredRecords;
-          countElem.innerText = `${filteredRecords.length} records loaded`;
-        } catch (err) {
-          alert('File reading error: ' + err.message);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function runTabReconciliation(tabKey) {
-      const mainList = [...state[tabKey].main];
-      const branchList = [...state[tabKey].branch];
-
-      const results = [];
-      const branchMatchedIndices = new Set();
-      const mainMatchedIndices = new Set();
-
-      function parseDateObj(dStr) {
-        if (!dStr || dStr === '-') return null;
-        const p = dStr.split('-');
-        if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]).getTime();
-        return null;
-      }
-
-      // PASS 1: Bank, CN, DN, JV -> Pure Amount Matching
-      mainList.forEach((m, mIdx) => {
-        if (m.entryType === 'BANK' || m.entryType === 'CN' || m.entryType === 'DN' || m.entryType === 'JV') {
-          for (let bIdx = 0; bIdx < branchList.length; bIdx++) {
-            if (branchMatchedIndices.has(bIdx)) continue;
-            const b = branchList[bIdx];
-
-            const isMirrorType = 
-              (m.entryType === 'BANK' && b.entryType === 'BANK') ||
-              (m.entryType === 'CN' && b.entryType === 'DN') ||
-              (m.entryType === 'DN' && b.entryType === 'CN') ||
-              (m.entryType === 'JV' && b.entryType === 'JV');
-
-            if (isMirrorType && Math.abs(m.amount - b.amount) < 1.0) {
-              mainMatchedIndices.add(mIdx);
-              branchMatchedIndices.add(bIdx);
-              results.push({
-                uid: 'RES_' + Math.random().toString(36).substr(2, 9),
-                status: 'MATCHED',
-                mainDoc: m.docDisplay,
-                mainDate: m.date,
-                mainAmt: m.amount,
-                branchDoc: b.docDisplay,
-                branchDate: b.date,
-                branchAmt: b.amount,
-                diff: 0,
-                entryType: m.entryType,
-                suggestion: null
-              });
-              break;
-            }
-          }
-        }
-      });
-
-      // PASS 2: INVOICES
-      mainList.forEach((m, mIdx) => {
-        if (mainMatchedIndices.has(mIdx)) return;
-
-        let matchedIdx = -1;
-        let matchReason = '';
-
-        for (let i = 0; i < branchList.length; i++) {
-          if (branchMatchedIndices.has(i)) continue;
-          const b = branchList[i];
-          if (m.matchKey !== 'UNKNOWN' && m.matchKey === b.matchKey && Math.abs(m.amount - b.amount) < 1.0) {
-            matchedIdx = i;
-            matchReason = 'MATCHED';
-            break;
-          }
-        }
-
-        if (matchedIdx === -1) {
-          for (let i = 0; i < branchList.length; i++) {
-            if (branchMatchedIndices.has(i)) continue;
-            const b = branchList[i];
-            if (m.matchKey !== 'UNKNOWN' && m.matchKey !== 'OPENING-BAL' && m.matchKey === b.matchKey) {
-              matchedIdx = i;
-              matchReason = 'AMT_DIFF';
-              break;
-            }
-          }
-        }
-
-        if (matchedIdx === -1 && m.entryType === 'INVOICE') {
-          for (let i = 0; i < branchList.length; i++) {
-            if (branchMatchedIndices.has(i)) continue;
-            const b = branchList[i];
-            if (b.entryType === 'INVOICE' && Math.abs(m.amount - b.amount) < 1.0) {
-              const tM = parseDateObj(m.date);
-              const tB = parseDateObj(b.date);
-              const daysDiff = (tM && tB) ? Math.abs(tM - tB) / (1000 * 60 * 60 * 24) : 0;
-              if (daysDiff <= 7 || !tM || !tB) {
-                matchedIdx = i;
-                matchReason = 'BILL_DIFF';
-                break;
-              }
-            }
-          }
-        }
-
-        if (matchedIdx === -1 && m.rawNum && m.rawNum !== '0') {
-          for (let i = 0; i < branchList.length; i++) {
-            if (branchMatchedIndices.has(i)) continue;
-            const b = branchList[i];
-            if (b.rawNum && b.rawNum === m.rawNum) {
-              matchedIdx = i;
-              matchReason = 'BOTH_DIFF';
-              break;
-            }
-          }
-        }
-
-        if (matchedIdx !== -1) {
-          mainMatchedIndices.add(mIdx);
-          branchMatchedIndices.add(matchedIdx);
-          const b = branchList[matchedIdx];
-          const diff = Number((m.amount - b.amount).toFixed(2));
-
-          results.push({
-            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
-            status: matchReason,
-            mainDoc: m.docDisplay,
-            mainDate: m.date,
-            mainAmt: m.amount,
-            branchDoc: b.docDisplay,
-            branchDate: b.date,
-            branchAmt: b.amount,
-            diff: diff,
-            entryType: m.entryType,
-            suggestion: null
-          });
-        }
-      });
-
-      // PASS 3: Unmatched Main
-      const unmatchedMainItems = [];
-      mainList.forEach((m, mIdx) => {
-        if (!mainMatchedIndices.has(mIdx)) {
-          const item = {
-            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
-            status: 'UNMATCHED_MAIN',
-            mainDoc: m.docDisplay,
-            mainDate: m.date,
-            mainAmt: m.amount,
-            branchDoc: '-',
-            branchDate: '-',
-            branchAmt: 0,
-            diff: Number(m.amount.toFixed(2)),
-            entryType: m.entryType,
-            suggestion: null,
-            originalIndex: mIdx
-          };
-          unmatchedMainItems.push(item);
-          results.push(item);
-        }
-      });
-
-      // PASS 4: Unmatched Branch
-      const unmatchedBranchItems = [];
-      branchList.forEach((b, bIdx) => {
-        if (!branchMatchedIndices.has(bIdx)) {
-          const item = {
-            uid: 'RES_' + Math.random().toString(36).substr(2, 9),
-            status: 'UNMATCHED_BRANCH',
-            mainDoc: '-',
-            mainDate: '-',
-            mainAmt: 0,
-            branchDoc: b.docDisplay,
-            branchDate: b.date,
-            branchAmt: b.amount,
-            diff: Number((-b.amount).toFixed(2)),
-            entryType: b.entryType,
-            suggestion: null,
-            originalIndex: bIdx
-          };
-          unmatchedBranchItems.push(item);
-          results.push(item);
-        }
-      });
-
-      // PASS 5: Smart Suggestions
-      results.forEach(res => {
-        if (res.status === 'AMT_DIFF' || res.status === 'BOTH_DIFF') {
-          const targetDiff = Math.abs(res.diff);
-
-          const foundBranch = unmatchedBranchItems.find(u => 
-            (u.entryType === 'DN' || u.entryType === 'CN' || u.entryType === 'INVOICE') && 
-            Math.abs(u.branchAmt - targetDiff) <= 2.0
-          );
-
-          if (foundBranch) {
-            res.suggestion = {
-              targetUid: foundBranch.uid,
-              source: 'Branch',
-              doc: foundBranch.branchDoc,
-              amt: foundBranch.branchAmt,
-              type: foundBranch.entryType === 'DN' ? 'Debit Note' : (foundBranch.entryType === 'CN' ? 'Credit Note' : 'Adjustment')
-            };
-            return;
-          }
-
-          const foundMain = unmatchedMainItems.find(u => 
-            (u.entryType === 'CN' || u.entryType === 'DN') && 
-            Math.abs(u.mainAmt - targetDiff) <= 2.0
-          );
-
-          if (foundMain) {
-            res.suggestion = {
-              targetUid: foundMain.uid,
-              source: 'Main Branch',
-              doc: foundMain.mainDoc,
-              amt: foundMain.mainAmt,
-              type: foundMain.entryType === 'CN' ? 'Credit Note' : 'Debit Note'
-            };
-          }
-        }
-      });
-
-      state[tabKey].results = results;
-      renderTable(tabKey);
-    }
-
-    function linkAndSettle(tabKey, billUid, targetUid) {
-      const resList = state[tabKey].results;
-      const billRow = resList.find(r => r.uid === billUid);
-      const noteRowIdx = resList.findIndex(r => r.uid === targetUid);
-
-      if (billRow && noteRowIdx !== -1) {
-        billRow.status = 'MATCHED';
-        billRow.noteAdjustment = `${billRow.suggestion.type} (${billRow.suggestion.doc}) of ₹${billRow.suggestion.amt} in ${billRow.suggestion.source}`;
-        billRow.suggestion = null;
-        billRow.diff = 0;
-        resList.splice(noteRowIdx, 1);
-
-        renderTable(tabKey);
-        updateGlobalKPIs();
-      }
-    }
-
-    function reconcileTab(tabKey) {
-      if (state[tabKey].main.length === 0 || state[tabKey].branch.length === 0) {
-        alert('Kripya dono files upload karein.');
-        return;
-      }
-      runTabReconciliation(tabKey);
-      updateGlobalKPIs();
-    }
-
-    function runSimultaneousReconciliation() {
-      let count = 0;
-      if (state.t1.main.length > 0 && state.t1.branch.length > 0) {
-        runTabReconciliation('t1');
-        count++;
-      }
-      if (state.t2.main.length > 0 && state.t2.branch.length > 0) {
-        runTabReconciliation('t2');
-        count++;
-      }
-
-      if (count === 0) {
-        alert('Reconciliation execute karne ke liye kripya files upload karein.');
-        return;
-      }
-
-      updateGlobalKPIs();
-      alert(`Success! Reconciled simultaneously.`);
-    }
-
-    // Render Table with Vertical Multi-select Filters
-    function renderTable(tabKey) {
-      const selectedStatus = Array.from(document.querySelectorAll(`.${tabKey}Filter:checked`)).map(cb => cb.value);
-      const selectedTypes = Array.from(document.querySelectorAll(`.${tabKey}TypeFilter:checked`)).map(cb => cb.value);
-      const searchKeyword = (document.getElementById(`${tabKey}SearchInput`).value || '').trim().toLowerCase();
-
-      const tbody = document.getElementById(`${tabKey}TableBody`);
-
-      const list = state[tabKey].results.filter(r => {
-        // 1. Status Filter
-        if (!selectedStatus.includes(r.status)) return false;
-
-        // 2. Type Filter (Multi-select)
-        let matchesType = false;
-        if (selectedTypes.includes('INVOICE') && r.entryType === 'INVOICE') matchesType = true;
-        if (selectedTypes.includes('BANK') && r.entryType === 'BANK') matchesType = true;
-        if (selectedTypes.includes('JV') && r.entryType === 'JV') matchesType = true;
-        if (selectedTypes.includes('NOTE') && (r.entryType === 'CN' || r.entryType === 'DN')) matchesType = true;
-        if (r.entryType === 'OPENING') matchesType = true; // Opening balance always visible if filter selected
-
-        if (!matchesType) return false;
-
-        // 3. Instant Search Filter
-        if (searchKeyword) {
-          const matchDoc = (r.mainDoc + ' ' + r.branchDoc).toLowerCase().includes(searchKeyword);
-          const matchDate = (r.mainDate + ' ' + r.branchDate).toLowerCase().includes(searchKeyword);
-          const matchAmt = (String(r.mainAmt) + ' ' + String(r.branchAmt) + ' ' + String(r.diff)).includes(searchKeyword);
-          if (!matchDoc && !matchDate && !matchAmt) return false;
-        }
-
-        return true;
-      });
-
-      if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Selected filters ya search ke sath koi record nahi mila.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = list.map(r => {
-        let badge = '';
-        let diffColor = 'text-slate-700';
-
-        if (r.status === 'MATCHED') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"><i class="ph-bold ph-check"></i> Matched</span>`;
-          diffColor = 'text-emerald-600 font-bold';
-        } else if (r.status === 'BILL_DIFF') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"><i class="ph-bold ph-identification-badge"></i> Bill Differ</span>`;
-          diffColor = 'text-blue-600 font-bold';
-        } else if (r.status === 'AMT_DIFF') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><i class="ph-bold ph-currency-inr"></i> Amt Differ</span>`;
-          diffColor = 'text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded';
-        } else if (r.status === 'BOTH_DIFF') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"><i class="ph-bold ph-warning-circle"></i> Both Differ</span>`;
-          diffColor = 'text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded';
-        } else if (r.status === 'UNMATCHED_MAIN') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800"><i class="ph-bold ph-x"></i> Only Main</span>`;
-          diffColor = 'text-rose-600 font-bold';
-        } else {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800"><i class="ph-bold ph-question"></i> Only Branch</span>`;
-          diffColor = 'text-violet-600 font-bold';
-        }
-
-        let rowHtml = `
-          <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-            <td class="p-3">${badge}</td>
-            <td class="p-3 font-semibold text-slate-900">${r.mainDoc}</td>
-            <td class="p-3 text-slate-600 font-medium">${r.mainDate}</td>
-            <td class="p-3 font-medium text-slate-900">₹${Number(r.mainAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 font-semibold text-slate-900">${r.branchDoc}</td>
-            <td class="p-3 text-slate-600 font-medium">${r.branchDate}</td>
-            <td class="p-3 font-medium text-slate-900">₹${Number(r.branchAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 text-center ${diffColor}">
-              ₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-              ${r.noteAdjustment ? `<div class="text-[10px] text-emerald-600 font-normal">Settled with Note</div>` : ''}
-            </td>
-          </tr>
-        `;
-
-        if (r.suggestion) {
-          rowHtml += `
-            <tr class="bg-amber-50/70 border-b border-amber-200/60">
-              <td colspan="8" class="p-2.5 px-4 text-xs text-amber-900">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div class="flex items-center gap-2">
-                    <i class="ph-fill ph-lightbulb text-amber-600 text-base flex-shrink-0"></i>
-                    <span><strong>Suggested Adjustment:</strong> Found pending <strong>${r.suggestion.type} (${r.suggestion.doc})</strong> of <strong>₹${Number(r.suggestion.amt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong> in <em>${r.suggestion.source}</em>. Considering this balances the ₹${Number(Math.abs(r.diff)).toLocaleString('en-IN', {minimumFractionDigits: 2})} difference!</span>
-                  </div>
-                  <button onclick="linkAndSettle('${tabKey}', '${r.uid}', '${r.suggestion.targetUid}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-md text-xs font-semibold shadow-sm transition flex items-center gap-1 self-start sm:self-auto">
-                    <i class="ph-bold ph-link-simple"></i> Link & Settle
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }
-
-        return rowHtml;
-      }).join('');
-    }
-
-    function updateGlobalKPIs() {
-      const allResults = [...state.t1.results, ...state.t2.results];
-      const matched = allResults.filter(r => r.status === 'MATCHED').length;
-      const billDiff = allResults.filter(r => r.status === 'BILL_DIFF').length;
-      const amtDiff = allResults.filter(r => r.status === 'AMT_DIFF' || r.status === 'BOTH_DIFF').length;
-      const unmatched = allResults.filter(r => r.status.includes('
+            <tbody id="t1TableBody" class="divide
