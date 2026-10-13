@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inter-Branch Ledger Reconciliation System</title>
+  <title>Inter-Branch Ledger Reconciliation Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -26,10 +26,10 @@
         </div>
         <div>
           <h1 class="text-xl font-bold text-slate-900">Inter-Branch Reconciliation Portal</h1>
-          <p class="text-xs text-slate-500">Dual-Tab Contra Ledger Matcher (Main Branch ⇄ Other Branch)</p>
+          <p class="text-xs text-slate-500">Automated Contra Ledger Matcher & Exception Resolver</p>
         </div>
       </div>
-      <!-- Top Actions -->
+      <!-- Top Action Buttons -->
       <div class="flex items-center gap-3">
         <button id="btnRunSimultaneous" onclick="runSimultaneousReconciliation()" class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition transform active:scale-95">
           <i class="ph-bold ph-play text-base"></i>
@@ -45,27 +45,31 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
 
-    <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Records</p>
-        <p class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotalCount">0</p>
+    <!-- KPI Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Entries</p>
+        <p class="text-xl font-bold text-slate-900 mt-1" id="kpiTotalCount">0</p>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-sm">
+      <div class="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Exact Matched</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1" id="kpiMatchedCount">0</p>
+        <p class="text-xl font-bold text-emerald-600 mt-1" id="kpiMatchedCount">0</p>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/40 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Bill Match (Amount Diff)</p>
-        <p class="text-2xl font-bold text-amber-600 mt-1" id="kpiMismatchCount">0</p>
+      <div class="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-700">Bill No. Differ</p>
+        <p class="text-xl font-bold text-blue-600 mt-1" id="kpiBillDiffCount">0</p>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-rose-200 bg-rose-50/40 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wider text-rose-700">Missing / Unmatched</p>
-        <p class="text-2xl font-bold text-rose-600 mt-1" id="kpiUnmatchedCount">0</p>
+      <div class="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Amount Differ</p>
+        <p class="text-xl font-bold text-amber-600 mt-1" id="kpiAmtDiffCount">0</p>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl border border-rose-200 bg-rose-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-rose-700">Pending / Missing</p>
+        <p class="text-xl font-bold text-rose-600 mt-1" id="kpiUnmatchedCount">0</p>
       </div>
     </div>
 
-    <!-- Tab Selector -->
+    <!-- Navigation Tabs -->
     <div class="border-b border-slate-200 mb-6 flex space-x-8">
       <button onclick="switchTab('tab1')" id="navTab1" class="tab-active py-3 px-1 text-sm flex items-center gap-2">
         <i class="ph-bold ph-tag text-base"></i>
@@ -77,10 +81,11 @@
       </button>
     </div>
 
-    <!-- ================= TAB 1 ================= -->
+    <!-- ================= TAB 1 CONTAINER ================= -->
     <section id="tab1Content" class="space-y-6">
+      <!-- File Upload Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Main Branch Sale Upload -->
+        <!-- Main Branch Sale -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
@@ -93,11 +98,11 @@
             <input type="file" id="t1MainFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'main')">
             <i class="ph-duotone ph-upload-simple text-3xl text-blue-600 mb-2"></i>
             <p class="text-sm font-semibold text-slate-700" id="t1MainFileName">Upload Main Branch Sale XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">Format: sma pvt sale ledger (Auto-detects Prefix, Bill No & Amount)</p>
+            <p class="text-xs text-slate-400 mt-1">E.g., sma pvt sale ledger</p>
           </div>
         </div>
 
-        <!-- Branch Purchase Upload -->
+        <!-- Branch Purchase -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
@@ -110,7 +115,7 @@
             <input type="file" id="t1BranchFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'branch')">
             <i class="ph-duotone ph-upload-simple text-3xl text-indigo-600 mb-2"></i>
             <p class="text-sm font-semibold text-slate-700" id="t1BranchFileName">Upload Other Branch Purchase XLS/Excel</p>
-            <p class="text-xs text-slate-400 mt-1">Format: pur from sma ledger (Auto-detects Remark Bill No)</p>
+            <p class="text-xs text-slate-400 mt-1">E.g., pur from sma ledger</p>
           </div>
         </div>
       </div>
@@ -118,7 +123,7 @@
       <!-- Action Row -->
       <div class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4">
         <div class="text-sm text-slate-600">
-          Match Criteria: Standard Bill Format <strong>26-SZ/12345</strong> & Amount (Diffs grouped automatically).
+          Smart Matching: Bill No. format variations (with/without slash/dash) aur amount variations automatically handle kiye jayenge.
         </div>
         <button onclick="reconcileTab('t1')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
           <i class="ph-bold ph-lightning"></i> Reconcile Tab 1 Only
@@ -127,27 +132,35 @@
 
       <!-- Results Table -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <h4 class="font-bold text-slate-800">Tab 1 Results</h4>
           
-          <!-- Multiple Filter Selection (Checkboxes) -->
+          <!-- Multi-select Filter Badges -->
           <div class="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 text-xs">
-            <span class="text-slate-500 font-medium px-2">Show:</span>
+            <span class="text-slate-500 font-medium px-1">Show:</span>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
               <input type="checkbox" value="MATCHED" checked onchange="renderTable('t1')" class="t1Filter rounded text-emerald-600 focus:ring-0">
               <span class="text-emerald-700 font-semibold">Matched</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="MISMATCH" checked onchange="renderTable('t1')" class="t1Filter rounded text-amber-600 focus:ring-0">
-              <span class="text-amber-700 font-semibold">Amount Diff</span>
+              <input type="checkbox" value="BILL_DIFF" checked onchange="renderTable('t1')" class="t1Filter rounded text-blue-600 focus:ring-0">
+              <span class="text-blue-700 font-semibold">Bill No. Differ</span>
+            </label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
+              <input type="checkbox" value="AMT_DIFF" checked onchange="renderTable('t1')" class="t1Filter rounded text-amber-600 focus:ring-0">
+              <span class="text-amber-700 font-semibold">Amount Differ</span>
+            </label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
+              <input type="checkbox" value="BOTH_DIFF" checked onchange="renderTable('t1')" class="t1Filter rounded text-purple-600 focus:ring-0">
+              <span class="text-purple-700 font-semibold">Amt & Bill Differ</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
               <input type="checkbox" value="UNMATCHED_MAIN" checked onchange="renderTable('t1')" class="t1Filter rounded text-rose-600 focus:ring-0">
               <span class="text-rose-700 font-semibold">Only in Main</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="UNMATCHED_BRANCH" checked onchange="renderTable('t1')" class="t1Filter rounded text-purple-600 focus:ring-0">
-              <span class="text-purple-700 font-semibold">Only in Branch</span>
+              <input type="checkbox" value="UNMATCHED_BRANCH" checked onchange="renderTable('t1')" class="t1Filter rounded text-violet-600 focus:ring-0">
+              <span class="text-violet-700 font-semibold">Only in Branch</span>
             </label>
           </div>
         </div>
@@ -156,7 +169,7 @@
           <table class="w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 z-10">
               <tr>
-                <th class="p-3 border-b">Status</th>
+                <th class="p-3 border-b">Status / Reason</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Bill No</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Date</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Amount (₹)</th>
@@ -174,10 +187,10 @@
       </div>
     </section>
 
-    <!-- ================= TAB 2 ================= -->
+    <!-- ================= TAB 2 CONTAINER ================= -->
     <section id="tab2Content" class="space-y-6 hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Main Branch Purchase Upload -->
+        <!-- Main Purchase -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
@@ -194,7 +207,7 @@
           </div>
         </div>
 
-        <!-- Branch Sale Upload -->
+        <!-- Branch Sale -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-slate-800 flex items-center gap-2">
@@ -215,7 +228,7 @@
       <!-- Action Row -->
       <div class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4">
         <div class="text-sm text-slate-600">
-          Match Criteria: Standard Bill Format <strong>26-SZ/12345</strong> & Amount (Diffs grouped automatically).
+          Smart Matching: Bill No. format variations & amount variations automatically handle kiye jayenge.
         </div>
         <button onclick="reconcileTab('t2')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
           <i class="ph-bold ph-lightning"></i> Reconcile Tab 2 Only
@@ -224,27 +237,35 @@
 
       <!-- Results Table -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <h4 class="font-bold text-slate-800">Tab 2 Results</h4>
           
-          <!-- Multiple Filter Selection (Checkboxes) -->
+          <!-- Multi-select Filter Badges -->
           <div class="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 text-xs">
-            <span class="text-slate-500 font-medium px-2">Show:</span>
+            <span class="text-slate-500 font-medium px-1">Show:</span>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
               <input type="checkbox" value="MATCHED" checked onchange="renderTable('t2')" class="t2Filter rounded text-emerald-600 focus:ring-0">
               <span class="text-emerald-700 font-semibold">Matched</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="MISMATCH" checked onchange="renderTable('t2')" class="t2Filter rounded text-amber-600 focus:ring-0">
-              <span class="text-amber-700 font-semibold">Amount Diff</span>
+              <input type="checkbox" value="BILL_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-blue-600 focus:ring-0">
+              <span class="text-blue-700 font-semibold">Bill No. Differ</span>
+            </label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
+              <input type="checkbox" value="AMT_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-amber-600 focus:ring-0">
+              <span class="text-amber-700 font-semibold">Amount Differ</span>
+            </label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
+              <input type="checkbox" value="BOTH_DIFF" checked onchange="renderTable('t2')" class="t2Filter rounded text-purple-600 focus:ring-0">
+              <span class="text-purple-700 font-semibold">Amt & Bill Differ</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
               <input type="checkbox" value="UNMATCHED_MAIN" checked onchange="renderTable('t2')" class="t2Filter rounded text-rose-600 focus:ring-0">
               <span class="text-rose-700 font-semibold">Only in Main</span>
             </label>
             <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 cursor-pointer hover:bg-slate-100 select-none">
-              <input type="checkbox" value="UNMATCHED_BRANCH" checked onchange="renderTable('t2')" class="t2Filter rounded text-purple-600 focus:ring-0">
-              <span class="text-purple-700 font-semibold">Only in Branch</span>
+              <input type="checkbox" value="UNMATCHED_BRANCH" checked onchange="renderTable('t2')" class="t2Filter rounded text-violet-600 focus:ring-0">
+              <span class="text-violet-700 font-semibold">Only in Branch</span>
             </label>
           </div>
         </div>
@@ -253,7 +274,7 @@
           <table class="w-full text-left border-collapse text-xs">
             <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 z-10">
               <tr>
-                <th class="p-3 border-b">Status</th>
+                <th class="p-3 border-b">Status / Reason</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Bill No</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Date</th>
                 <th class="p-3 border-b bg-blue-50/70">Main: Amount (₹)</th>
@@ -293,18 +314,21 @@
         : 'text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2';
     }
 
-    // Excel Serial Date to DD-MM-YYYY Formatter
+    function cleanStr(s) {
+      if (!s) return '';
+      return String(s).replace(/\0/g, '').trim();
+    }
+
+    // Convert date to standard DD-MM-YYYY
     function formatExcelDate(val) {
       if (!val) return '-';
       if (typeof val === 'string' && val.includes('-') && val.length === 10) {
-        // e.g. "2026-04-01" -> "01-04-2026"
         const parts = val.split('-');
         if (parts[0].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
         return val;
       }
       const num = Number(val);
       if (!isNaN(num) && num > 20000 && num < 80000) {
-        // Excel serial date formula
         const date = new Date(Math.round((num - 25569) * 86400 * 1000));
         const dd = String(date.getDate()).padStart(2, '0');
         const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -314,82 +338,66 @@
       return String(val).trim();
     }
 
-    // Clean null byte characters from string
-    function cleanStr(s) {
-      if (!s) return '';
-      return String(s).replace(/\0/g, '').trim();
-    }
-
-    // Smart Bill Number Extractor & Formatter: Standardized to "26-SZ/12345"
+    // Comprehensive Bill Extractor & Match Key Generator
     function extractBillNo(row) {
-      // 1. Check if direct c_year + c_prefix + n_tran_no exists (Sale ledger format)
       const yr = cleanStr(row['c_year']);
       const prefix = cleanStr(row['c_prefix']).toUpperCase();
       const tran = cleanStr(row['n_tran_no']);
       const remark = cleanStr(row['c_remark']);
 
-      // Opening balance check
       if (prefix === 'OP' || yr === '00') {
-        return { display: 'OPENING-BAL', matchKey: 'OPENING-BAL' };
+        return { display: 'OPENING-BAL', matchKey: 'OPENING-BAL', rawNum: '0' };
       }
 
-      // 2. Check remark first (Purchase ledger stores "Bill No.: 26/SZ-000211" or similar)
+      // 1. Check Remark (Handles both: "26/SZ-000211" AND "26/SZ015882")
       if (remark) {
-        const remarkMatch = remark.match(/(?:Bill\s*No\.?:?\s*)?([0-9]{2})[\/\-]([A-Z]+)[\/\-]([0-9]+)/i);
-        if (remarkMatch) {
-          const y = remarkMatch[1];
-          const pref = remarkMatch[2].toUpperCase();
-          const num = parseInt(remarkMatch[3], 10);
-          return {
-            display: `${y}-${pref}/${num}`,
-            matchKey: `${y}-${pref}-${num}`
-          };
-        }
-
-        // Debit note / other ref in remark
-        const dbrMatch = remark.match(/DBNT[:\s\-]*([0-9]+)/i);
-        if (dbrMatch) {
-          const num = parseInt(dbrMatch[1], 10);
-          return { display: `DBNT-${num}`, matchKey: `DBNT-${num}` };
-        }
-      }
-
-      // 3. From Columns (c_year, c_prefix, n_tran_no)
-      if (yr && prefix && tran && tran !== '0') {
-        const num = parseInt(tran, 10);
-        return {
-          display: `${yr}-${prefix}/${num}`,
-          matchKey: `${yr}-${prefix}-${num}`
-        };
-      }
-
-      // 4. Fallback search through all columns for pattern like 26-SZ/123
-      for (const k of Object.keys(row)) {
-        const strVal = cleanStr(row[k]);
-        const m = strVal.match(/([0-9]{2})[\/\-]([A-Z]+)[\/\-]([0-9]+)/i);
+        // Match patterns like: 26/SZ-015882, 26/SZ015882, 26-SZ/15882, SZ/15882
+        const m = remark.match(/(?:Bill\s*No\.?:?\s*)?([0-9]{2})?[\/\-]?([A-Z]+)[\/\-]?([0-9]+)/i);
         if (m) {
-          const y = m[1];
+          const y = m[1] || '26';
           const pref = m[2].toUpperCase();
           const num = parseInt(m[3], 10);
           return {
             display: `${y}-${pref}/${num}`,
-            matchKey: `${y}-${pref}-${num}`
+            matchKey: `${y}-${pref}-${num}`,
+            rawNum: String(num)
+          };
+        }
+
+        const dbrMatch = remark.match(/DBNT[:\s\-]*([0-9]+)/i);
+        if (dbrMatch) {
+          const num = parseInt(dbrMatch[1], 10);
+          return { display: `DBNT-${num}`, matchKey: `DBNT-${num}`, rawNum: String(num) };
+        }
+      }
+
+      // 2. From Dedicated Columns
+      if (yr && prefix && tran && tran !== '0') {
+        const num = parseInt(tran, 10);
+        return {
+          display: `${yr}-${prefix}/${num}`,
+          matchKey: `${yr}-${prefix}-${num}`,
+          rawNum: String(num)
+        };
+      }
+
+      // 3. Fallback scan on any field
+      for (const k of Object.keys(row)) {
+        const strVal = cleanStr(row[k]);
+        const m = strVal.match(/([0-9]{2})?[\/\-]?([A-Z]+)[\/\-]?([0-9]+)/i);
+        if (m && m[2].length <= 4) {
+          const y = m[1] || '26';
+          const pref = m[2].toUpperCase();
+          const num = parseInt(m[3], 10);
+          return {
+            display: `${y}-${pref}/${num}`,
+            matchKey: `${y}-${pref}-${num}`,
+            rawNum: String(num)
           };
         }
       }
 
-      // 5. Generic doc no detection
-      for (const k of Object.keys(row)) {
-        const lk = k.toLowerCase();
-        if (lk.includes('inv') || lk.includes('bill') || lk.includes('tran_no')) {
-          const val = cleanStr(row[k]);
-          if (val && val !== '0') {
-            return { display: val, matchKey: val.replace(/[^A-Z0-9]/gi, '').toUpperCase() };
-          }
-        }
-      }
-
-      return { display: 'UNKNOWN', matchKey: `ROW-${Math.random()}` };
+      return { display: 'UNKNOWN', matchKey: `ROW-${Math.random()}`, rawNum: '' };
     }
 
     function parseAmount(val) {
@@ -422,10 +430,9 @@
             return;
           }
 
-          const records = rows.map((row, index) => {
+          const records = rows.map((row) => {
             const billInfo = extractBillNo(row);
 
-            // Date Detection
             let date = '';
             for (const key of Object.keys(row)) {
               const k = key.toLowerCase();
@@ -435,7 +442,6 @@
               }
             }
 
-            // Amount Detection
             let amount = 0;
             for (const key of Object.keys(row)) {
               const k = key.toLowerCase();
@@ -448,15 +454,14 @@
             return {
               docDisplay: billInfo.display,
               matchKey: billInfo.matchKey,
+              rawNum: billInfo.rawNum,
               date: date || '-',
               amount: amount,
               particulars: cleanStr(row['c_opp_name'] || row['c_name'] || '')
             };
           });
 
-          // Filter out rows with 0 amount or empty doc if needed
           const filteredRecords = records.filter(r => r.amount > 0 || r.docDisplay !== 'UNKNOWN');
-
           state[tabKey][sideKey] = filteredRecords;
           countElem.innerText = `${filteredRecords.length} records loaded`;
         } catch (err) {
@@ -466,7 +471,7 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // Core Matching Engine
+    // 4-Tier Reconciliation Engine
     function runTabReconciliation(tabKey) {
       const mainList = [...state[tabKey].main];
       const branchList = [...state[tabKey].branch];
@@ -474,27 +479,70 @@
       const results = [];
       const branchMatchedIndices = new Set();
 
-      // Pass 1: Match by Standard Reference Bill Number FIRST!
-      // This solves Issue #4: If Bill Number is same, even if amount differs, they MUST match into one row!
+      // Helper: parse date to timestamp for proximity check
+      function parseDateObj(dStr) {
+        if (!dStr || dStr === '-') return null;
+        const p = dStr.split('-');
+        if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]).getTime();
+        return null;
+      }
+
       mainList.forEach(m => {
         let matchedIdx = -1;
+        let matchReason = '';
 
-        // Try exact Bill Key Match (e.g. "26-SZ-211")
+        // TIER 1: Exact Bill Key + Exact Amount Match
         for (let i = 0; i < branchList.length; i++) {
           if (branchMatchedIndices.has(i)) continue;
           const b = branchList[i];
-          if (m.matchKey !== 'UNKNOWN' && m.matchKey !== 'OPENING-BAL' && m.matchKey === b.matchKey) {
+          if (m.matchKey !== 'UNKNOWN' && m.matchKey === b.matchKey && Math.abs(m.amount - b.amount) < 1.0) {
             matchedIdx = i;
+            matchReason = 'MATCHED';
             break;
           }
         }
 
-        // If no Bill Key match found, try Exact Amount Match (for bank / round-offs)
-        if (matchedIdx === -1 && m.matchKey === 'OPENING-BAL') {
+        // TIER 2: Exact Bill Key Match BUT Amount Differs (e.g. Rate diff, Tax diff)
+        if (matchedIdx === -1) {
           for (let i = 0; i < branchList.length; i++) {
             if (branchMatchedIndices.has(i)) continue;
-            if (branchList[i].matchKey === 'OPENING-BAL') {
+            const b = branchList[i];
+            if (m.matchKey !== 'UNKNOWN' && m.matchKey !== 'OPENING-BAL' && m.matchKey === b.matchKey) {
               matchedIdx = i;
+              matchReason = 'AMT_DIFF';
+              break;
+            }
+          }
+        }
+
+        // TIER 3: Exact Amount Match BUT Bill No Differs (e.g. typing error in bill no / bank contra)
+        if (matchedIdx === -1) {
+          for (let i = 0; i < branchList.length; i++) {
+            if (branchMatchedIndices.has(i)) continue;
+            const b = branchList[i];
+            if (Math.abs(m.amount - b.amount) < 1.0) {
+              // Same amount! Check if dates are close (within 7 days) or one is bank
+              const tM = parseDateObj(m.date);
+              const tB = parseDateObj(b.date);
+              const daysDiff = (tM && tB) ? Math.abs(tM - tB) / (1000 * 60 * 60 * 24) : 0;
+              
+              if (daysDiff <= 7 || m.matchKey === 'OPENING-BAL' || !tM || !tB) {
+                matchedIdx = i;
+                matchReason = 'BILL_DIFF';
+                break;
+              }
+            }
+          }
+        }
+
+        // TIER 4: Same Bill Sequence Number (raw number like 15882) BUT Amount & Prefix have minor variations
+        if (matchedIdx === -1 && m.rawNum && m.rawNum !== '0') {
+          for (let i = 0; i < branchList.length; i++) {
+            if (branchMatchedIndices.has(i)) continue;
+            const b = branchList[i];
+            if (b.rawNum && b.rawNum === m.rawNum) {
+              matchedIdx = i;
+              matchReason = 'BOTH_DIFF';
               break;
             }
           }
@@ -504,10 +552,9 @@
           const b = branchList[matchedIdx];
           branchMatchedIndices.add(matchedIdx);
           const diff = Number((m.amount - b.amount).toFixed(2));
-          const isExact = Math.abs(diff) < 0.01;
 
           results.push({
-            status: isExact ? 'MATCHED' : 'MISMATCH',
+            status: matchReason,
             mainDoc: m.docDisplay,
             mainDate: m.date,
             mainAmt: m.amount,
@@ -531,7 +578,7 @@
         }
       });
 
-      // Pass 2: Remaining Unmatched in Branch
+      // Remaining Unmatched in Branch
       branchList.forEach((b, idx) => {
         if (!branchMatchedIndices.has(idx)) {
           results.push({
@@ -572,42 +619,48 @@
       }
 
       if (count === 0) {
-        alert('Reconciliation run karne ke liye kripya files upload karein.');
+        alert('Reconciliation execute karne ke liye kripya files upload karein.');
         return;
       }
 
       updateGlobalKPIs();
-      alert(`Success! Reconciliation execute ho gaya hai.`);
+      alert(`Success! Reconciled simultaneously.`);
     }
 
-    // Render Table with Multi-select Checkbox Filter
+    // Render Table with Clear Status Badges
     function renderTable(tabKey) {
       const selectedFilters = Array.from(document.querySelectorAll(`.${tabKey}Filter:checked`)).map(cb => cb.value);
       const tbody = document.getElementById(`${tabKey}TableBody`);
       const list = state[tabKey].results.filter(r => selectedFilters.includes(r.status));
 
       if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Selected filters ke sath koi data nahi mila.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Selected filter me koi records nahi hain.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = list.map(r => {
         let badge = '';
+        let diffColor = 'text-slate-700';
+
         if (r.status === 'MATCHED') {
           badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"><i class="ph-bold ph-check"></i> Matched</span>`;
-        } else if (r.status === 'MISMATCH') {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><i class="ph-bold ph-warning"></i> Amount Diff</span>`;
+          diffColor = 'text-emerald-600 font-bold';
+        } else if (r.status === 'BILL_DIFF') {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"><i class="ph-bold ph-identification-badge"></i> Bill No. Differ</span>`;
+          diffColor = 'text-blue-600 font-bold';
+        } else if (r.status === 'AMT_DIFF') {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><i class="ph-bold ph-currency-inr"></i> Amount Differ</span>`;
+          diffColor = 'text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded';
+        } else if (r.status === 'BOTH_DIFF') {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"><i class="ph-bold ph-warning-circle"></i> Amt & Bill Differ</span>`;
+          diffColor = 'text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded';
         } else if (r.status === 'UNMATCHED_MAIN') {
           badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800"><i class="ph-bold ph-x"></i> Only in Main</span>`;
+          diffColor = 'text-rose-600 font-bold';
         } else {
-          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"><i class="ph-bold ph-question"></i> Only in Branch</span>`;
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800"><i class="ph-bold ph-question"></i> Only in Branch</span>`;
+          diffColor = 'text-violet-600 font-bold';
         }
-
-        const diffClass = Math.abs(r.diff) < 0.01 
-          ? 'text-emerald-600 font-bold' 
-          : r.status === 'MISMATCH' 
-            ? 'text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded' 
-            : 'text-rose-600 font-bold';
 
         return `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -618,7 +671,7 @@
             <td class="p-3 font-semibold text-slate-900">${r.branchDoc}</td>
             <td class="p-3 text-slate-600 font-medium">${r.branchDate}</td>
             <td class="p-3 font-medium text-slate-900">₹${Number(r.branchAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="p-3 text-center ${diffClass}">₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-center ${diffColor}">₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
           </tr>
         `;
       }).join('');
@@ -627,12 +680,14 @@
     function updateGlobalKPIs() {
       const allResults = [...state.t1.results, ...state.t2.results];
       const matched = allResults.filter(r => r.status === 'MATCHED').length;
-      const mismatches = allResults.filter(r => r.status === 'MISMATCH').length;
+      const billDiff = allResults.filter(r => r.status === 'BILL_DIFF').length;
+      const amtDiff = allResults.filter(r => r.status === 'AMT_DIFF' || r.status === 'BOTH_DIFF').length;
       const unmatched = allResults.filter(r => r.status.includes('UNMATCHED')).length;
 
       document.getElementById('kpiTotalCount').innerText = allResults.length;
       document.getElementById('kpiMatchedCount').innerText = matched;
-      document.getElementById('kpiMismatchCount').innerText = mismatches;
+      document.getElementById('kpiBillDiffCount').innerText = billDiff;
+      document.getElementById('kpiAmtDiffCount').innerText = amtDiff;
       document.getElementById('kpiUnmatchedCount').innerText = unmatched;
     }
 
