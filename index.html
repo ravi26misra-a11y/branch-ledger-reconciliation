@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inter-Branch Ledger Reconciliation System</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Excel Parsing & Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    .tab-active {
+      border-bottom: 3px solid #2563eb;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-md">
+          <i class="ph-bold ph-arrows-left-right text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">Inter-Branch Reconciliation Portal</h1>
+          <p class="text-xs text-slate-500">Dual-Tab Contra Ledger Matcher (Main Branch ⇄ Other Branch)</p>
+        </div>
+      </div>
+      <!-- Top Action Bar -->
+      <div class="flex items-center gap-3">
+        <button id="btnRunSimultaneous" onclick="runSimultaneousReconciliation()" class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition transform active:scale-95">
+          <i class="ph-bold ph-play text-base"></i>
+          Reconcile Both Simultaneously
+        </button>
+        <button id="btnExportAll" onclick="exportCombinedExcel()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition">
+          <i class="ph-bold ph-file-xls text-base"></i>
+          Export Excel Report
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Global KPI Summary -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Entries (Both Tabs)</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotalCount">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Matched Pairs</p>
+        <p class="text-2xl font-bold text-emerald-600 mt-1" id="kpiMatchedCount">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Amount / Reference Mismatch</p>
+        <p class="text-2xl font-bold text-amber-600 mt-1" id="kpiMismatchCount">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-rose-200 bg-rose-50/40 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wider text-rose-700">Unmatched (Pending in Branch)</p>
+        <p class="text-2xl font-bold text-rose-600 mt-1" id="kpiUnmatchedCount">0</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-slate-200 mb-6 flex space-x-8">
+      <button onclick="switchTab('tab1')" id="navTab1" class="tab-active py-3 px-1 text-sm flex items-center gap-2">
+        <i class="ph-bold ph-tag text-base"></i>
+        Tab 1: Main Sale ⇄ Branch Purchase
+      </button>
+      <button onclick="switchTab('tab2')" id="navTab2" class="text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2">
+        <i class="ph-bold ph-shopping-cart text-base"></i>
+        Tab 2: Main Purchase ⇄ Branch Sale
+      </button>
+    </div>
+
+    <!-- ================= TAB 1 CONTAINER ================= -->
+    <section id="tab1Content" class="space-y-6">
+      <!-- Upload Cards for Tab 1 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Main Branch Sale -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+              Main Branch: Sales Ledger
+            </h3>
+            <span class="text-xs font-medium text-slate-400" id="t1MainCount">0 loaded</span>
+          </div>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('t1MainFile').click()">
+            <input type="file" id="t1MainFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'main')">
+            <i class="ph-duotone ph-upload-simple text-3xl text-blue-600 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700" id="t1MainFileName">Upload Main Branch Sale Excel/CSV</p>
+            <p class="text-xs text-slate-400 mt-1">Columns: Date, Invoice No, Particulars, Amount / Debit / Credit</p>
+          </div>
+        </div>
+
+        <!-- Other Branch Purchase -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+              Other Branch: Purchase Ledger
+            </h3>
+            <span class="text-xs font-medium text-slate-400" id="t1BranchCount">0 loaded</span>
+          </div>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-indigo-400 transition cursor-pointer" onclick="document.getElementById('t1BranchFile').click()">
+            <input type="file" id="t1BranchFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't1', 'branch')">
+            <i class="ph-duotone ph-upload-simple text-3xl text-indigo-600 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700" id="t1BranchFileName">Upload Other Branch Purchase Excel/CSV</p>
+            <p class="text-xs text-slate-400 mt-1">Columns: Date, Supplier Bill No, Particulars, Amount</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Row Tab 1 -->
+      <div class="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="text-sm text-slate-600">
+          Reconcile Rule: <strong>Main Sale Invoice No + Amount</strong> matches <strong>Branch Purchase Supplier Bill No + Amount</strong>
+        </div>
+        <button onclick="reconcileTab('t1')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
+          <i class="ph-bold ph-lightning"></i> Reconcile Tab 1 Only
+        </button>
+      </div>
+
+      <!-- Results Table Tab 1 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <h4 class="font-bold text-slate-800">Tab 1 Reconciliation Results</h4>
+          <div class="flex items-center gap-2">
+            <select id="t1Filter" onchange="renderTable('t1')" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50">
+              <option value="ALL">Show All</option>
+              <option value="MATCHED">Matched Only</option>
+              <option value="UNMATCHED_MAIN">Pending in Branch (Only in Main)</option>
+              <option value="UNMATCHED_BRANCH">Pending in Main (Only in Branch)</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-[500px]">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0">
+              <tr>
+                <th class="p-3 border-b">Status</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Inv No</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Date</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Amount (₹)</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Ref/Bill No</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Date</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Amount (₹)</th>
+                <th class="p-3 border-b text-center">Diff (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="t1TableBody" class="divide-y divide-slate-100 text-slate-700">
+              <tr><td colspan="8" class="p-6 text-center text-slate-400">Files upload karke Reconcile button press karein.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2 CONTAINER ================= -->
+    <section id="tab2Content" class="space-y-6 hidden">
+      <!-- Upload Cards for Tab 2 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Main Branch Purchase -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+              Main Branch: Purchase Ledger
+            </h3>
+            <span class="text-xs font-medium text-slate-400" id="t2MainCount">0 loaded</span>
+          </div>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('t2MainFile').click()">
+            <input type="file" id="t2MainFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't2', 'main')">
+            <i class="ph-duotone ph-upload-simple text-3xl text-blue-600 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700" id="t2MainFileName">Upload Main Branch Purchase Excel/CSV</p>
+            <p class="text-xs text-slate-400 mt-1">Columns: Date, Supplier Bill No, Particulars, Amount</p>
+          </div>
+        </div>
+
+        <!-- Other Branch Sale -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+              Other Branch: Sales Ledger
+            </h3>
+            <span class="text-xs font-medium text-slate-400" id="t2BranchCount">0 loaded</span>
+          </div>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-indigo-400 transition cursor-pointer" onclick="document.getElementById('t2BranchFile').click()">
+            <input type="file" id="t2BranchFile" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 't2', 'branch')">
+            <i class="ph-duotone ph-upload-simple text-3xl text-indigo-600 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700" id="t2BranchFileName">Upload Other Branch Sale Excel/CSV</p>
+            <p class="text-xs text-slate-400 mt-1">Columns: Date, Invoice No, Particulars, Amount</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Row Tab 2 -->
+      <div class="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="text-sm text-slate-600">
+          Reconcile Rule: <strong>Main Purchase Bill No + Amount</strong> matches <strong>Branch Sale Invoice No + Amount</strong>
+        </div>
+        <button onclick="reconcileTab('t2')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition">
+          <i class="ph-bold ph-lightning"></i> Reconcile Tab 2 Only
+        </button>
+      </div>
+
+      <!-- Results Table Tab 2 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <h4 class="font-bold text-slate-800">Tab 2 Reconciliation Results</h4>
+          <div class="flex items-center gap-2">
+            <select id="t2Filter" onchange="renderTable('t2')" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50">
+              <option value="ALL">Show All</option>
+              <option value="MATCHED">Matched Only</option>
+              <option value="UNMATCHED_MAIN">Pending in Branch (Only in Main)</option>
+              <option value="UNMATCHED_BRANCH">Pending in Main (Only in Branch)</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-[500px]">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0">
+              <tr>
+                <th class="p-3 border-b">Status</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Bill No</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Date</th>
+                <th class="p-3 border-b bg-blue-50/60">Main: Amount (₹)</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Inv No</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Date</th>
+                <th class="p-3 border-b bg-indigo-50/60">Branch: Amount (₹)</th>
+                <th class="p-3 border-b text-center">Diff (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="t2TableBody" class="divide-y divide-slate-100 text-slate-700">
+              <tr><td colspan="8" class="p-6 text-center text-slate-400">Files upload karke Reconcile button press karein.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // State Store
+    const state = {
+      t1: { main: [], branch: [], results: [] },
+      t2: { main: [], branch: [], results: [] }
+    };
+
+    function switchTab(tab) {
+      const isTab1 = tab === 'tab1';
+      document.getElementById('tab1Content').classList.toggle('hidden', !isTab1);
+      document.getElementById('tab2Content').classList.toggle('hidden', isTab1);
+
+      document.getElementById('navTab1').className = isTab1 
+        ? 'tab-active py-3 px-1 text-sm flex items-center gap-2' 
+        : 'text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2';
+
+      document.getElementById('navTab2').className = !isTab1 
+        ? 'tab-active py-3 px-1 text-sm flex items-center gap-2' 
+        : 'text-slate-500 hover:text-slate-700 py-3 px-1 text-sm flex items-center gap-2';
+    }
+
+    // Helper: Normalize Document Number (removes dashes, slashes, spaces for reliable matching)
+    function cleanDocNo(val) {
+      if (!val) return '';
+      return String(val).toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    }
+
+    // Helper: Parse Number safely
+    function parseAmount(val) {
+      if (typeof val === 'number') return Math.abs(val);
+      if (!val) return 0;
+      const cleaned = String(val).replace(/,/g, '').replace(/[^\d.-]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : Math.abs(num);
+    }
+
+    // File Upload Handler with Auto Column Mapping
+    function handleFileUpload(event, tabKey, sideKey) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fileNameElem = document.getElementById(`${tabKey}${sideKey.charAt(0).toUpperCase() + sideKey.slice(1)}FileName`);
+      const countElem = document.getElementById(`${tabKey}${sideKey.charAt(0).toUpperCase() + sideKey.slice(1)}Count`);
+      fileNameElem.innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+          if (rows.length === 0) {
+            alert('File me koi valid data nahi mila.');
+            return;
+          }
+
+          // Smart Column Detection
+          const parsedRecords = rows.map((row, index) => {
+            let docNo = '', date = '', particulars = '', amount = 0;
+
+            for (const key of Object.keys(row)) {
+              const k = key.toLowerCase().trim();
+              const val = row[key];
+
+              // Detect Doc / Invoice / Bill No
+              if (!docNo && (k.includes('inv') || k.includes('voucher') || k.includes('vch no') || k.includes('bill no') || k.includes('doc no') || k.includes('ref no'))) {
+                docNo = String(val).trim();
+              }
+              // Detect Date
+              else if (!date && (k.includes('date') || k.includes('dt'))) {
+                date = String(val).trim();
+              }
+              // Detect Particulars / Party
+              else if (!particulars && (k.includes('particular') || k.includes('party') || k.includes('account') || k.includes('narration'))) {
+                particulars = String(val).trim();
+              }
+              // Detect Amount (or Debit / Credit)
+              else if (k.includes('amount') || k.includes('total') || k.includes('debit') || k.includes('credit') || k.includes('net')) {
+                const amt = parseAmount(val);
+                if (amt > 0) amount = amt;
+              }
+            }
+
+            // Fallback for docNo if not detected
+            if (!docNo) {
+              const fallbackKey = Object.keys(row).find(k => String(row[k]).match(/[0-9]+/));
+              docNo = fallbackKey ? String(row[fallbackKey]).trim() : `ROW-${index + 1}`;
+            }
+
+            return {
+              rawRow: row,
+              date: date || 'N/A',
+              docNo: docNo,
+              cleanDoc: cleanDocNo(docNo),
+              particulars: particulars || '-',
+              amount: amount
+            };
+          });
+
+          state[tabKey][sideKey] = parsedRecords;
+          countElem.innerText = `${parsedRecords.length} records loaded`;
+        } catch (err) {
+          alert('File read karne me error: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Core Matching Algorithm for a Tab
+    function runTabReconciliation(tabKey) {
+      const mainList = [...state[tabKey].main];
+      const branchList = [...state[tabKey].branch];
+
+      const results = [];
+      const branchMatchedIndices = new Set();
+
+      // Pass 1: Exact Doc Number + Exact Amount Match
+      mainList.forEach(m => {
+        let matchedIdx = -1;
+
+        // Try exact clean doc match & amount match
+        for (let i = 0; i < branchList.length; i++) {
+          if (branchMatchedIndices.has(i)) continue;
+          const b = branchList[i];
+          if (m.cleanDoc === b.cleanDoc && Math.abs(m.amount - b.amount) < 1.0) {
+            matchedIdx = i;
+            break;
+          }
+        }
+
+        // Pass 2: Loose Match (If doc contains number & amount matches)
+        if (matchedIdx === -1) {
+          for (let i = 0; i < branchList.length; i++) {
+            if (branchMatchedIndices.has(i)) continue;
+            const b = branchList[i];
+            if (Math.abs(m.amount - b.amount) < 1.0 && (m.cleanDoc.includes(b.cleanDoc) || b.cleanDoc.includes(m.cleanDoc))) {
+              matchedIdx = i;
+              break;
+            }
+          }
+        }
+
+        if (matchedIdx !== -1) {
+          const b = branchList[matchedIdx];
+          branchMatchedIndices.add(matchedIdx);
+          results.push({
+            status: 'MATCHED',
+            mainDoc: m.docNo,
+            mainDate: m.date,
+            mainAmt: m.amount,
+            branchDoc: b.docNo,
+            branchDate: b.date,
+            branchAmt: b.amount,
+            diff: (m.amount - b.amount).toFixed(2)
+          });
+        } else {
+          results.push({
+            status: 'UNMATCHED_MAIN',
+            mainDoc: m.docNo,
+            mainDate: m.date,
+            mainAmt: m.amount,
+            branchDoc: '-',
+            branchDate: '-',
+            branchAmt: 0,
+            diff: m.amount.toFixed(2)
+          });
+        }
+      });
+
+      // Remaining unmatched in branch
+      branchList.forEach((b, idx) => {
+        if (!branchMatchedIndices.has(idx)) {
+          results.push({
+            status: 'UNMATCHED_BRANCH',
+            mainDoc: '-',
+            mainDate: '-',
+            mainAmt: 0,
+            branchDoc: b.docNo,
+            branchDate: b.date,
+            branchAmt: b.amount,
+            diff: (-b.amount).toFixed(2)
+          });
+        }
+      });
+
+      state[tabKey].results = results;
+      renderTable(tabKey);
+    }
+
+    // Individual Reconcile Trigger
+    function reconcileTab(tabKey) {
+      if (state[tabKey].main.length === 0 || state[tabKey].branch.length === 0) {
+        alert('Kripya dono (Main aur Branch) files upload karein.');
+        return;
+      }
+      runTabReconciliation(tabKey);
+      updateGlobalKPIs();
+    }
+
+    // SIMULTANEOUS RECONCILIATION BUTTON
+    function runSimultaneousReconciliation() {
+      let runCount = 0;
+      if (state.t1.main.length > 0 && state.t1.branch.length > 0) {
+        runTabReconciliation('t1');
+        runCount++;
+      }
+      if (state.t2.main.length > 0 && state.t2.branch.length > 0) {
+        runTabReconciliation('t2');
+        runCount++;
+      }
+
+      if (runCount === 0) {
+        alert('Kripya files upload karein. Dono tabs ka reconciliation ek saath execute karne ke liye files ka upload hona jaruri hai.');
+        return;
+      }
+
+      updateGlobalKPIs();
+      alert(`Success! ${runCount === 2 ? 'Both Tabs (Sale ⇄ Purchase & Purchase ⇄ Sale)' : 'Loaded Tab'} ka reconciliation ek saath complete ho gaya hai.`);
+    }
+
+    // Render Results Table
+    function renderTable(tabKey) {
+      const filter = document.getElementById(`${tabKey}Filter`).value;
+      const tbody = document.getElementById(`${tabKey}TableBody`);
+      const list = state[tabKey].results.filter(r => filter === 'ALL' || r.status === filter);
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Koi record match nahi hua is filter ke saath.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(r => {
+        let badge = '';
+        if (r.status === 'MATCHED') {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"><i class="ph-bold ph-check"></i> Matched</span>`;
+        } else if (r.status === 'UNMATCHED_MAIN') {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800"><i class="ph-bold ph-x"></i> Missing in Branch</span>`;
+        } else {
+          badge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><i class="ph-bold ph-warning"></i> Missing in Main</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+            <td class="p-3">${badge}</td>
+            <td class="p-3 font-semibold text-slate-900">${r.mainDoc}</td>
+            <td class="p-3 text-slate-500">${r.mainDate}</td>
+            <td class="p-3 font-medium text-slate-900">₹${Number(r.mainAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 font-semibold text-slate-900">${r.branchDoc}</td>
+            <td class="p-3 text-slate-500">${r.branchDate}</td>
+            <td class="p-3 font-medium text-slate-900">₹${Number(r.branchAmt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-center font-bold ${Math.abs(r.diff) < 0.01 ? 'text-emerald-600' : 'text-rose-600'}">₹${Number(r.diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Global KPI Update
+    function updateGlobalKPIs() {
+      const allResults = [...state.t1.results, ...state.t2.results];
+      const matched = allResults.filter(r => r.status === 'MATCHED').length;
+      const unmatched = allResults.filter(r => r.status.includes('UNMATCHED')).length;
+
+      document.getElementById('kpiTotalCount').innerText = allResults.length;
+      document.getElementById('kpiMatchedCount').innerText = matched;
+      document.getElementById('kpiUnmatchedCount').innerText = unmatched;
+      document.getElementById('kpiMismatchCount').innerText = allResults.filter(r => Math.abs(r.diff) > 0.01 && r.status === 'MATCHED').length;
+    }
+
+    // Export to Multi-sheet Excel
+    function exportCombinedExcel() {
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Tab 1
+      if (state.t1.results.length > 0) {
+        const ws1 = XLSX.utils.json_to_sheet(state.t1.results);
+        XLSX.utils.book_append_sheet(wb, ws1, "MainSale_vs_BranchPurch");
+      }
+
+      // Sheet 2: Tab 2
+      if (state.t2.results.length > 0) {
+        const ws2 = XLSX.utils.json_to_sheet(state.t2.results);
+        XLSX.utils.book_append_sheet(wb, ws2, "MainPurch_vs_BranchSale");
+      }
+
+      if (wb.SheetNames.length === 0) {
+        alert('Export karne ke liye koi reconciled data uplabdh nahi hai.');
+        return;
+      }
+
+      XLSX.writeFile(wb, "Branch_Reconciliation_Report.xlsx");
+    }
+  </script>
+</body>
+</html>
